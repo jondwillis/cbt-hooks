@@ -17,3 +17,12 @@
   different work even when the triggers look similar.
 - The reviewer subagent has persistent memory under
   `.claude/agents/reviewer/`; consult it via `/functional-emotions:review`.
+- **Docs-sync invariants.** Editing `hooks/hooks.json`,
+  `.claude-plugin/plugin.json`, `scripts/lib.sh`, or
+  `skills/*/SKILL.md` changes user-visible behavior. Treat `README.md`
+  and `AGENTS.md` as also-changed-by-implication: audit them for stale
+  claims (hook tables, config keys/defaults, skill descriptions,
+  state-dir paths) before declaring the edit complete. Run
+  `/functional-emotions:docs-check` for an automated drift scan. The
+  project's `.claude/settings.json` also fires a soft reminder via
+  `PostToolUse` when one of those files is edited.

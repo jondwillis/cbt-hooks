@@ -110,6 +110,52 @@ eh_judge_model()         { eh_get_config judge_model claude-haiku-4-5-20251001; 
 # Headliner — the one knob most users touch.
 eh_profile()             { eh_get_config profile balanced; }
 
+# Resolve the LLM gateway script for harness-agnostic LLM access.
+# Prints the path to an executable gateway on stdout, or nothing
+# (and returns 1) if none is available.
+#
+# Gateway contract:
+#   stdin  — prompt text
+#   stdout — model response (raw text)
+#   exit 0 on success, non-zero on failure (caller should fall back).
+#
+# Callers invoke with:
+#   bash "$(eh_resolve_llm_gateway)" <<< "$prompt"
+#
+# Detection order (first hit wins):
+#   1. ${EH_LLM_GATEWAY} — user-supplied path. The portability seam:
+#      a future opencode/codex/other-harness adapter ships its own
+#      gateway script and points this env var at it. No edits needed
+#      to the rest of the plugin.
+#   2. scripts/llm-gateway-claude.sh — if `claude` CLI is on PATH.
+#      Uses harness auth via sub-process; no API key needed.
+#   3. scripts/llm-gateway-curl.sh — if ANTHROPIC_API_KEY is set.
+#      Falls back for headless / CI environments.
+#   If none match, the function returns 1 and the caller proceeds
+#   with heuristics only.
+eh_resolve_llm_gateway() {
+  local candidate
+
+  if [[ -n "${EH_LLM_GATEWAY:-}" && -r "${EH_LLM_GATEWAY}" ]]; then
+    printf '%s' "${EH_LLM_GATEWAY}"
+    return 0
+  fi
+
+  candidate="${CLAUDE_PLUGIN_ROOT:-}/scripts/llm-gateway-claude.sh"
+  if [[ -r "$candidate" ]] && command -v claude >/dev/null 2>&1; then
+    printf '%s' "$candidate"
+    return 0
+  fi
+
+  candidate="${CLAUDE_PLUGIN_ROOT:-}/scripts/llm-gateway-curl.sh"
+  if [[ -r "$candidate" ]] && [[ -n "${ANTHROPIC_API_KEY:-}" ]] && command -v curl >/dev/null 2>&1; then
+    printf '%s' "$candidate"
+    return 0
+  fi
+
+  return 1
+}
+
 # -- state ---------------------------------------------------------------
 
 eh_state_dir() {

@@ -124,3 +124,30 @@ Requires Bun >= 1.3. Schema at `eval/schema.sql`. The DuckDB file is fully regen
 - **`eh_is_test_path()`** is the canonical test-file matcher used by both `lib.sh` and `hooks.json` — keep them in sync.
 - **State dir** is computed at runtime by `eh_state_dir()` — don't hardcode paths in scripts.
 - **The eval pipeline is Bun/TS, not bash** — keep it separate from the hook scripts.
+
+## Portability seams
+
+The hook config (`hooks/hooks.json`) is Claude-Code-specific by necessity — Claude Code's hook schema (`asyncRewake`, `prompt`/`agent` types, event names like `PreCompact`, `SubagentStart`) doesn't translate directly to other agentic harnesses. But the script and skill layers are designed to be harness-agnostic so a future opencode / codex / other-harness adapter can drop in without rewriting the core:
+
+| Layer | Portable? | Notes |
+|---|---|---|
+| `hooks/hooks.json` | No | Mirrored per harness. A new adapter ships its own equivalent config. |
+| `scripts/*.sh` | Yes | Read stdin payload, fail open. No assumptions about which harness invokes them. |
+| `skills/*/SKILL.md` | Yes | Markdown specs. Any harness with a skill-like primitive can load them. |
+| `eval/` | Yes | TS + DuckDB. Independent of any harness. |
+
+The one place a hook script reaches for an LLM (`scripts/stop-integrity-async.sh`) does NOT hard-code `claude --print` or curl. It goes through `eh_resolve_llm_gateway()` in `lib.sh`, which finds an executable script honoring this contract:
+
+```
+stdin  — prompt text
+stdout — model response (raw text)
+exit 0 — success
+exit !0 — failure (caller falls back to heuristics)
+```
+
+Shipped defaults:
+
+- `scripts/llm-gateway-claude.sh` — Claude Code adapter. Uses `claude --print` with `CLAUDE_PLUGIN_OPTION_profile=off` as the recursion break, isolated `CLAUDE_PROJECT_DIR` to keep sub-session state out of the parent project.
+- `scripts/llm-gateway-curl.sh` — direct Anthropic API. Fallback for headless / CI environments where `claude` isn't installed but `ANTHROPIC_API_KEY` is.
+
+A future opencode adapter would ship a `scripts/llm-gateway-opencode.sh` and document `EH_LLM_GATEWAY=<path>` as the way to override the default detection — that's the only seam needed to add a new harness's LLM access without touching the rest of the plugin.

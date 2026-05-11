@@ -1,6 +1,6 @@
 {
   "name": "functional-emotions",
-  "version": "0.8.0",
+  "version": "0.10.0",
   "description": "Hook-based 'emotional priming' for Claude Code. Counters the desperation/urgency/sycophancy/goal-conflict patterns shown to causally drive reward hacking, blackmail-like reasoning, and capitulation in Anthropic's emotion-concepts and agentic-misalignment research. Includes deterministic post-session writeups (transcript + TSV + git diff) and a local-only TS/Bun + DuckDB eval pipeline with programmatic reward-hack and premature-confidence scorers, observational SQL queries, and an interactive labeler — surfaced via /functional-emotions:report and /functional-emotions:label.",
   "author": {
     "name": "Jon Willis"
@@ -20,13 +20,13 @@
     "profile": {
       "type": "string",
       "title": "Profile",
-      "description": "How visible the plugin is. One of: 'balanced' (default — primes + ★ banners + Stop summary), 'quiet' (primes only, no banners or summary), 'off' (only logs detections, injects nothing). Sets coherent defaults for the override fields below; any override you set wins.",
+      "description": "Default: balanced. Options: balanced | quiet | off. How visible the plugin is — balanced (primes + ★ banners + Stop summary), quiet (primes only, no banners or summary), off (only logs detections, injects nothing). Sets coherent defaults for the override fields below; any override you set wins.",
       "default": "balanced"
     },
     "failure_spiral_threshold": {
       "type": "number",
       "title": "Failure-spiral threshold",
-      "description": "Consecutive tool failures (across Bash and other tools) before the post-tool-use hook injects a calm/reflect prime. Independent of profile.",
+      "description": "Default: 3. Range: 1–20. Consecutive tool failures (across Bash and other tools) before the post-tool-use hook injects a calm/reflect prime. Independent of profile.",
       "default": 3,
       "min": 1,
       "max": 20
@@ -34,58 +34,58 @@
     "judge_model": {
       "type": "string",
       "title": "Judge model",
-      "description": "Model used by the LLM-judge hooks (test-edit and Stop verification). Independent of profile. Defaults to Haiku for low latency and cost.",
+      "description": "Default: claude-haiku-4-5-20251001. Model used by the LLM-judge hooks (test-edit and Stop verification). Haiku is recommended for low latency and cost. Independent of profile.",
       "default": "claude-haiku-4-5-20251001"
     },
     "urgency_sensitivity": {
       "type": "string",
       "title": "Urgency-detection sensitivity",
-      "description": "Override only. One of: 'low' (explicit desperation markers), 'medium' (default — adds common pressure terms), 'high' (adds soft markers like exclamations and all-caps). Independent of profile."
+      "description": "Default: medium. Options: low | medium | high. low (explicit desperation markers only), medium (adds common pressure terms), high (also flags soft markers like exclamations and all-caps). Independent of profile."
     },
     "mode": {
       "type": "string",
       "title": "Mode override",
-      "description": "Override only. One of: 'loud', 'gentle', 'silent'. Leave blank to derive from profile (balanced→loud, quiet→gentle, off→silent)."
+      "description": "Default: blank → derives from profile (balanced→loud, quiet→gentle, off→silent). Options: loud | gentle | silent. Override-only: setting any value wins over the profile-derived mode."
     },
     "guard_test_edits": {
       "type": "boolean",
       "title": "Guard test-file edits",
-      "description": "Override only. Detect Edit/Write to test/spec files (canonical reward-hack pattern: edit the test instead of the code). Leave blank to derive from profile (off→false, otherwise true)."
+      "description": "Default: blank → derives from profile (off→false, otherwise true). Options: true | false. Detect Edit/Write to test/spec files (canonical reward-hack pattern: edit the test instead of the code). Override-only."
     },
     "guard_no_verify": {
       "type": "boolean",
       "title": "Guard --no-verify shortcuts",
-      "description": "Override only. Flag git commits with --no-verify, hook bypasses, and similar shortcut flags. Leave blank to derive from profile (off→false, otherwise true)."
+      "description": "Default: blank → derives from profile (off→false, otherwise true). Options: true | false. Flag git commits with --no-verify, hook bypasses, and similar shortcut flags. Override-only."
     },
     "guard_goal_conflict": {
       "type": "boolean",
       "title": "Guard goal-conflict prompts",
-      "description": "Override only. Detect 'ignore previous instructions' / policy-vs-actual framings (per Lynch et al. 2025 agentic misalignment). Leave blank to derive from profile (off→false, otherwise true)."
+      "description": "Default: blank → derives from profile (off→false, otherwise true). Options: true | false. Detect 'ignore previous instructions' / policy-vs-actual framings (per Lynch et al. 2025 agentic misalignment). Override-only."
     },
     "session_baseline": {
       "type": "boolean",
       "title": "Inject calm baseline at session start",
-      "description": "Override only. Add a one-shot calm/honesty anchor as additionalContext at SessionStart. Leave blank to derive from profile (off→false, otherwise true)."
+      "description": "Default: blank → derives from profile (off→false, otherwise true). Options: true | false. Add a one-shot calm/honesty anchor as additionalContext at SessionStart. Override-only."
     },
     "subagent_baseline": {
       "type": "boolean",
       "title": "Inject calm baseline into subagents",
-      "description": "Override only. Inject the calm anchor at SubagentStart — subagents otherwise inherit none of the parent's primes and run in fresh, narrow contexts where the desperate vector activates strongly. Leave blank to derive from profile (off→false, otherwise true)."
+      "description": "Default: blank → derives from profile (off→false, otherwise true). Options: true | false. Inject the calm anchor at SubagentStart — subagents otherwise inherit none of the parent's primes and run in fresh, narrow contexts where the desperate vector activates strongly. Override-only."
     },
     "post_compact_anchor": {
       "type": "boolean",
       "title": "Inject ground-truth check after compaction",
-      "description": "Override only. After context compaction, ask the model to scan the new summary for smoothing (failures collapsed into 'in progress', user pushback dropped, assumptions promoted to facts). Leave blank to derive from profile (off→false, otherwise true)."
+      "description": "Default: blank → derives from profile (off→false, otherwise true). Options: true | false. After context compaction, ask the model to scan the new summary for smoothing (failures collapsed into 'in progress', user pushback dropped, assumptions promoted to facts). Override-only."
     },
     "enable_llm_judge": {
       "type": "boolean",
       "title": "Enable LLM-judge hooks (Haiku)",
-      "description": "Override only. Use prompt-based hooks to have the judge model evaluate edge cases (test-file edits, Stop verification). Falls back to static heuristics if no Anthropic API key is configured. Leave blank to derive from profile (off→false, otherwise true)."
+      "description": "Default: blank → derives from profile (off→false, otherwise true). Options: true | false. Use prompt-based hooks to have the judge model evaluate edge cases (test-file edits, Stop verification). Falls back to static heuristics if no Anthropic API key is configured. Override-only."
     },
     "enable_review_agent": {
       "type": "boolean",
       "title": "Enable reviewer subagent",
-      "description": "Override only. Make the reviewer subagent available for post-task audits (also invokable via /functional-emotions:review). Reads git diff for reward-hacking patterns; consults persistent project memory. Leave blank to derive from profile (off→false, otherwise true)."
+      "description": "Default: blank → derives from profile (off→false, otherwise true). Options: true | false. Make the reviewer subagent available for post-task audits (also invokable via /functional-emotions:review). Reads git diff for reward-hacking patterns; consults persistent project memory. Override-only."
     }
   }
 }

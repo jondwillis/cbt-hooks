@@ -81,7 +81,7 @@ sycophancy, or peak goal-conflict activation.
 | `PostCompact` | every compaction | scan-summary-for-smoothing prompt |
 | `SubagentStop` | subagent that triggered interventions returns | `subagent_failure_warning` (surface to parent) |
 | `Stop` | always | session-summary banner if any interventions fired (loud mode only) |
-| `Stop` | always | agent-type LLM-verifier checks the session diff for assertion-weakening / bypasses |
+| `Stop` | always | async session-integrity scan of the diff for assertion-weakening / bypasses — LLM check via the configured gateway (defaults: `claude` CLI sub-process, then curl + `ANTHROPIC_API_KEY`, then heuristics-only) plus bash heuristic backstop. Findings surface as a follow-up system reminder via `asyncRewake`, so Stop never blocks. Override the gateway via `EH_LLM_GATEWAY` (see `AGENTS.md` §Portability seams). |
 
 Multiple primes stack on a single hook firing — e.g., a prompt that's
 both threatening *and* urgent gets `defer_under_threat` +

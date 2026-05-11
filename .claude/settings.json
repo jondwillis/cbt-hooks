@@ -8,6 +8,11 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/scripts/check-agent-context.sh\"",
             "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/scripts/docs-sync-reminder.sh\"",
+            "timeout": 2
           }
         ]
       }
